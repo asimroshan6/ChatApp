@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+
+            <div class="card shadow-sm border-0">
+
+                <!-- Header -->
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center rounded-top">
+                    <h5 class="mb-0 fw-semibold">💬 Chat Room</h5>
+                    <button class="btn btn-sm btn-light" onclick="showOnline()">Online</button>
+                </div>
+
+                <!-- Body -->
+                <div class="card-body p-3">
+
+                    <!-- Messages -->
+                    <div id="messages"
+                         class="mb-3 p-3 rounded"
+                         style="height: 350px; overflow-y: auto; background: #f8f9fa; font-size: 0.95rem;">
+                    </div>
+
+                    <!-- Input -->
+                    <div class="input-group">
+                        <input type="text"
+                               class="form-control"
+                               id="messageInput"
+                               placeholder="Type a message...">
+
+                        <button class="btn btn-primary px-4"
+                                id="messageButton"
+                                onclick="sendMessage()">
+                            Send
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Online Users Modal (same logic, just styled) -->
+    <div id="onlineModal"
+         style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+                background:white; padding:20px; border-radius:10px; width:300px;
+                box-shadow:0 5px 20px rgba(0,0,0,0.2); z-index:1000;">
+
+        <h5 class="mb-3 text-center">Online Users</h5>
+
+        <ul id="onlineUsersList" class="list-group mb-3"></ul>
+
+        <div class="text-center">
+            <button class="btn btn-secondary btn-sm" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    #messages {
+        scroll-behavior: smooth;
+    }
+
+    #messages li {
+        padding: 6px 10px;
+        margin-bottom: 6px;
+        border-radius: 6px;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    #messages li:has(:contains("joined")),
+    #messages li:has(:contains("left")) {
+        background: transparent;
+        text-align: center;
+        font-size: 0.85rem;
+        color: gray;
+        box-shadow: none;
+    }
+</style>
+
+<script>
+    document.getElementById("messageInput").addEventListener("keydown", function(event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+        }
+    });
+
+    let ws;
+
+    async function createWebsocket(token, room_name){
+        if (!token || !room_name){
+            alert("User not found");
+            window.location.href = "/";
+            return;
+        }
+
+        ws = new WebSocket(`ws://localhost:8000/ws/${room_name}?token=${token}`);
+
+        ws.onmessage = function(event) {
+            let data;
+
+            try {
+                data = JSON.parse(event.data);
+            } catch (e) {
+                const li = document.createElement("li");
+                li.textContent = event.data;
+                document.getElementById("messages").appendChild(li);
+
+                document.getElementById("messages").scrollTop =
+                    document.getElementById("messages").scrollHeight;
+
+                return;
+            }
+
+            if (data.type === "online_users") {
+                const list = document.getElementById("onlineUsersList");
+                list.innerHTML = "";
+
+                data.users.forEach(user => {
+                    const li = document.createElement("li");
+                    li.className = "list-group-item";
+                    li.textContent = user;
+                    list.appendChild(li);
+                });
+
+                document.getElementById("onlineModal").style.display = "block";
+            }
+
+            if (data.type === "history") {
+                data.history.forEach((item) => {
+                    const li = document.createElement("li");
+
+                    if (item.type === "join") {
+                        li.textContent = `${item.username} joined`;
+                    } else if (item.type === "message") {
+                        li.textContent = `${item.username}: ${item.text}`;
+                    } else {
+                        li.textContent = `${item.username} left`;
+                    }
+
+                    document.getElementById("messages").appendChild(li);
+                });
+
+                document.getElementById("messages").scrollTop =
+                    document.getElementById("messages").scrollHeight;
+            }
+        };
+    }
+
+    function closeModal(){
+        document.getElementById("onlineModal").style.display = "none";
+    }
+
+    function sendMessage(){
+        const input = document.getElementById("messageInput");
+        if (!input.value){
+            return;
+        }
+
+        ws.send(input.value);
+        input.value = "";
+    }
+
+    function showOnline(){
+        ws.send(JSON.stringify({type: "get_users"}))
+    }
+
+    const token = localStorage.getItem("token");
+    const room_name = localStorage.getItem("room_name");
+
+    window.onload = createWebsocket(token, room_name);
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("room_name");
+
+</script>
+
+{% endblock %}

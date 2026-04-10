@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 75vh;">
+    <div class="card shadow-sm p-4" style="width: 100%; max-width: 420px;">
+
+        <h4 class="text-center mb-4 fw-semibold">Create Room</h4>
+
+        <input type="text" class="form-control mb-3" id="roomNameCreate" placeholder="Room Name">
+
+        <input type="password" class="form-control mb-3" id="roomPasswordCreate" placeholder="Password">
+
+        <input type="text" class="form-control mb-3" id="usernameCreate" placeholder="Username">
+
+        <button onclick="createRoom()" class="btn btn-primary w-100">
+            Create Room
+        </button>
+
+    </div>
+</div>
+
+{% endblock %}
