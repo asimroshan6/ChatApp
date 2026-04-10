@@ -100,7 +100,7 @@
             return;
         }
 
-        ws = new WebSocket(`ws://chatapp-fhai.onrender.com/ws/${room_name}?token=${token}`);
+        ws = new WebSocket(`wss://chatapp-fhai.onrender.com/ws/${room_name}?token=${token}`);
 
         ws.onmessage = function(event) {
             let data;
